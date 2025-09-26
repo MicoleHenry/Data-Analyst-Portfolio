@@ -1,0 +1,422 @@
+-- Database Creation and Raw Data Import
+
+
+-- Database Creation ----------------------------------------------------------
+CREATE Database fitness_data;
+USE fitness_data;
+-- Drop the table if it already exists
+DROP TABLE IF EXISTS daily_activity;
+
+-- Create daily_activity table -------------------------------------------------
+CREATE TABLE daily_activity (
+    Id BIGINT,
+    ActivityDate DATE,
+    TotalSteps INT,
+    TotalDistance DECIMAL(12,9),
+    TrackerDistance DECIMAL(12,9),
+    LoggedActivitiesDistance DECIMAL(12,9),
+    VeryActiveDistance DECIMAL(12,9),
+    ModeratelyActiveDistance DECIMAL(12,9),
+    LightActiveDistance DECIMAL(12,9),
+    SedentaryActiveDistance DECIMAL(12,9),
+    VeryActiveMinutes INT,
+    FairlyActiveMinutes INT,
+    LightlyActiveMinutes INT,
+    SedentaryMinutes INT,
+    Calories INT
+);
+
+-- Load the raw CSV into the table
+LOAD DATA INFILE 'C:/ProgramData/MySQL/MySQL Server 8.0/Uploads/dailyActivity_merged.csv'
+INTO TABLE daily_activity
+FIELDS TERMINATED BY ','
+IGNORE 1 ROWS;
+
+-- Deduplicate: keep only one row per Id + ActivityDate
+-- (If there are exact duplicates, DISTINCT removes them)
+CREATE TABLE daily_activity_dedup AS
+SELECT *
+FROM (
+    SELECT *,
+           ROW_NUMBER() OVER (
+               PARTITION BY Id, ActivityDate
+               ORDER BY Id, ActivityDate
+           ) AS rn
+    FROM daily_activity
+) t
+WHERE rn = 1;
+
+-- Drop the raw table and rename deduped version
+DROP TABLE daily_activity;
+ALTER TABLE daily_activity_dedup RENAME TO daily_activity;
+
+-- Verify structure
+DESCRIBE daily_activity;
+
+-- Spot check
+SELECT COUNT(*) AS total_rows,
+       COUNT(DISTINCT Id, ActivityDate) AS unique_user_days
+FROM daily_activity;
+
+-- Create daily_activity2 table ------------------------------------------------------------------
+-- Drop the table if it already exists
+DROP TABLE IF EXISTS daily_activity2;
+
+-- Create the table with appropriate data types
+CREATE TABLE daily_activity2 (
+    Id BIGINT NOT NULL,
+    ActivityDate DATE NOT NULL,
+    TotalSteps INT,
+    TotalDistance FLOAT,
+    TrackerDistance FLOAT,
+    LoggedActivitiesDistance FLOAT,
+    VeryActiveDistance FLOAT,
+    ModeratelyActiveDistance FLOAT,
+    LightActiveDistance FLOAT,
+    SedentaryActiveDistance FLOAT,
+    VeryActiveMinutes INT,
+    FairlyActiveMinutes INT,
+    LightlyActiveMinutes INT,
+    SedentaryMinutes INT,
+    Calories INT,
+    PRIMARY KEY (Id, ActivityDate)
+);
+
+-- Load the CSV data into the table, converting blanks to NULL and parsing the date
+LOAD DATA INFILE 'C:/ProgramData/MySQL/MySQL Server 8.0/Uploads/dailyActivity_merged2.csv'
+INTO TABLE daily_activity2
+FIELDS TERMINATED BY ','
+IGNORE 1 ROWS
+(Id, @raw_date, TotalSteps, @TotalDistance, @TrackerDistance, @LoggedActivitiesDistance,
+ @VeryActiveDistance, @ModeratelyActiveDistance, @LightActiveDistance, SedentaryActiveDistance,
+ VeryActiveMinutes, FairlyActiveMinutes, LightlyActiveMinutes, SedentaryMinutes, Calories)
+SET ActivityDate = STR_TO_DATE(TRIM(@raw_date), '%c/%e/%Y'),
+    TotalDistance = NULLIF(TRIM(@TotalDistance), ''),
+    TrackerDistance = NULLIF(TRIM(@TrackerDistance), ''),
+    LoggedActivitiesDistance = NULLIF(TRIM(@LoggedActivitiesDistance), ''),
+    VeryActiveDistance = NULLIF(TRIM(@VeryActiveDistance), ''),
+    ModeratelyActiveDistance = NULLIF(TRIM(@ModeratelyActiveDistance), ''),
+    LightActiveDistance = NULLIF(TRIM(@LightActiveDistance), '');
+
+-- Remove any duplicates by selecting DISTINCT rows into a temporary table
+CREATE TABLE daily_activity2_dedup AS
+SELECT DISTINCT *
+FROM daily_activity2;
+
+-- Replace the original table with the deduplicated data
+DROP TABLE daily_activity2;
+RENAME TABLE daily_activity2_dedup TO daily_activity2;
+
+-- Optional: view the table structure and first few rows
+DESCRIBE daily_activity2;
+SELECT * FROM daily_activity2 LIMIT 10;
+
+-- Create daily calories table ----------------------------------------------------------------------
+-- Drop the table if it exists
+DROP TABLE IF EXISTS daily_calories;
+
+-- Create the table
+CREATE TABLE daily_calories (
+    Id BIGINT NOT NULL,
+    ActivityDate DATE NOT NULL,
+    Calories INT,
+    PRIMARY KEY (Id, ActivityDate)
+);
+
+-- Check table structure
+DESCRIBE daily_calories;
+
+-- Load data from CSV
+LOAD DATA INFILE 'c:/ProgramData/MySQL/MySQL Server 8.0/Uploads/dailyCalories_merged.csv'
+INTO TABLE daily_calories
+FIELDS TERMINATED BY ','
+IGNORE 1 ROWS
+(Id, @raw_date, Calories)
+SET ActivityDate = STR_TO_DATE(TRIM(@raw_date), '%c/%e/%Y');
+
+-- Remove duplicates using temporary table
+CREATE TEMPORARY TABLE temp_daily_calories AS
+SELECT DISTINCT *
+FROM daily_calories;
+
+TRUNCATE TABLE daily_calories;
+
+INSERT INTO daily_calories
+SELECT *
+FROM temp_daily_calories;
+
+DROP TEMPORARY TABLE temp_daily_calories;
+
+-- View results
+SELECT *
+FROM daily_calories;
+
+-- Create daily_intensities table ------------------------------------------------------------------
+-- Drop the table if it exists
+DROP TABLE IF EXISTS daily_intensities;
+
+-- Create the table
+CREATE TABLE daily_intensities (
+    Id BIGINT NOT NULL,
+    ActivityDate DATE NOT NULL,
+    SedentaryMinutes FLOAT,
+    LightlyActiveMinutes FLOAT,
+    FairlyActiveMinutes FLOAT,
+    VeryActiveMinutes FLOAT,
+    SedentaryActiveDistance FLOAT,
+    LightActiveDistance FLOAT,
+    ModeratelyActiveDistance FLOAT,
+    VeryActiveDistance FLOAT,
+    PRIMARY KEY (Id, ActivityDate)
+);
+
+-- Check table structure
+DESCRIBE daily_intensities;
+
+-- Load data from CSV
+LOAD DATA INFILE 'c:/ProgramData/MySQL/MySQL Server 8.0/Uploads/dailyIntensities_merged.csv'
+INTO TABLE daily_intensities
+FIELDS TERMINATED BY ','
+IGNORE 1 ROWS
+(Id, @raw_date, SedentaryMinutes, LightlyActiveMinutes, FairlyActiveMinutes,
+ VeryActiveMinutes, SedentaryActiveDistance, LightActiveDistance, ModeratelyActiveDistance,
+ VeryActiveDistance)
+SET ActivityDate = STR_TO_DATE(TRIM(@raw_date), '%c/%e/%Y');
+
+-- Remove duplicates using temporary table
+CREATE TEMPORARY TABLE temp_daily_intensities AS
+SELECT DISTINCT *
+FROM daily_intensities;
+
+TRUNCATE TABLE daily_intensities;
+
+INSERT INTO daily_intensities
+SELECT *
+FROM temp_daily_intensities;
+
+DROP TEMPORARY TABLE temp_daily_intensities;
+
+-- View results
+SELECT *
+FROM daily_intensities;
+
+
+-- Create daily_steps table ----------------------------------------------------------------------------
+-- Drop the table if it exists
+DROP TABLE IF EXISTS daily_steps;
+
+-- Create the table
+CREATE TABLE daily_steps (
+    Id BIGINT NOT NULL,
+    ActivityDate DATE NOT NULL,
+    StepTotal INT,
+    PRIMARY KEY (Id, ActivityDate)
+);
+
+-- Check table structure
+DESCRIBE daily_steps;
+
+-- Load data from CSV
+LOAD DATA INFILE 'c:/ProgramData/MySQL/MySQL Server 8.0/Uploads/dailySteps_merged.csv'
+INTO TABLE daily_steps
+FIELDS TERMINATED BY ','
+IGNORE 1 ROWS
+(Id, @raw_date, StepTotal)
+SET ActivityDate = STR_TO_DATE(TRIM(@raw_date), '%c/%e/%Y');
+
+-- Remove duplicates using temporary table
+CREATE TEMPORARY TABLE temp_daily_steps AS
+SELECT DISTINCT *
+FROM daily_steps;
+
+TRUNCATE TABLE daily_steps;
+
+INSERT INTO daily_steps
+SELECT *
+FROM temp_daily_steps;
+
+DROP TEMPORARY TABLE temp_daily_steps;
+
+-- View first 1000 rows
+SELECT *
+FROM daily_steps
+LIMIT 1000;
+
+-- Create sleep_day table -----------------------------------------------------------------------------
+-- Drop table if it exists
+DROP TABLE IF EXISTS sleep_day;
+
+-- Create the table with row_id for deduplication
+CREATE TABLE sleep_day (
+    row_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    Id BIGINT NOT NULL,
+    SleepDay DATETIME NOT NULL,
+    TotalSleepRecords INT,
+    TotalMinutesAsleep INT,
+    TotalTimeInBed INT
+);
+
+-- Load data from CSV
+LOAD DATA INFILE 'c:/ProgramData/MySQL/MySQL Server 8.0/Uploads/sleepDay_merged.csv'
+INTO TABLE sleep_day
+FIELDS TERMINATED BY ','
+IGNORE 1 ROWS
+(Id, @raw_date, TotalSleepRecords, TotalMinutesAsleep, TotalTimeInBed)
+SET SleepDay = STR_TO_DATE(TRIM(@raw_date), '%c/%e/%Y %l:%i:%s %p');
+
+-- Remove duplicates keeping the first occurrence
+-- Remove duplicates using a temporary table
+CREATE TEMPORARY TABLE temp_sleep_day AS
+SELECT t1.*
+FROM sleep_day t1
+INNER JOIN (
+    -- Find the minimum row_id for each Id + SleepDay
+    SELECT Id, SleepDay, MIN(row_id) AS min_row_id
+    FROM sleep_day
+    GROUP BY Id, SleepDay
+) t2
+ON t1.Id = t2.Id
+AND t1.SleepDay = t2.SleepDay
+AND t1.row_id = t2.min_row_id;
+
+-- Empty the main table
+TRUNCATE TABLE sleep_day;
+
+-- Insert the deduplicated rows back
+INSERT INTO sleep_day (Id, SleepDay, TotalSleepRecords, TotalMinutesAsleep, TotalTimeInBed)
+SELECT Id, SleepDay, TotalSleepRecords, TotalMinutesAsleep, TotalTimeInBed
+FROM temp_sleep_day;
+
+DROP TEMPORARY TABLE temp_sleep_day;
+
+-- View results
+SELECT *
+FROM sleep_day
+LIMIT 100;
+
+ alter table sleep_day
+change column SleepDay ActivityDate datetime;
+    
+alter table Sleep_day
+modify ActivityDate date;
+    
+-- Create weight_log_info table --------------------------------------------------------------------------
+-- Drop table if it exists
+DROP TABLE IF EXISTS weight_log_info;
+
+-- Create table with row_id for deduplication
+CREATE TABLE weight_log_info (
+    row_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    Id BIGINT NOT NULL,
+    Date DATETIME NOT NULL,
+    WeightKg FLOAT,
+    WeightPounds FLOAT,
+    Fat INT NULL,
+    BMI FLOAT,
+    IsManualReport BOOLEAN,
+    LogId BIGINT,
+    UNIQUE KEY unique_id_date (Id, Date)
+);
+
+-- Load data from CSV
+LOAD DATA INFILE 'c:/ProgramData/MySQL/MySQL Server 8.0/Uploads/weightLogInfo_merged.csv'
+INTO TABLE weight_log_info
+FIELDS TERMINATED BY ','
+IGNORE 1 ROWS
+(Id, @raw_date, WeightKg, WeightPounds, @raw_Fat, BMI, @raw_manual, LogId)
+SET Date = STR_TO_DATE(TRIM(@raw_date), '%c/%e/%Y %h:%i:%s %p'),
+    Fat = NULLIF(@raw_Fat,''),
+    IsManualReport = CASE 
+                        WHEN UPPER(TRIM(@raw_manual)) = 'TRUE' THEN TRUE
+                        WHEN UPPER(TRIM(@raw_manual)) = 'FALSE' THEN FALSE
+                        ELSE NULL
+                     END;
+
+-- Remove duplicates keeping the first row_id
+CREATE TEMPORARY TABLE temp_weight_log AS
+SELECT t1.*
+FROM weight_log_info t1
+INNER JOIN (
+    SELECT Id, Date, MIN(row_id) AS min_row_id
+    FROM weight_log_info
+    GROUP BY Id, Date
+) t2
+ON t1.Id = t2.Id
+AND t1.Date = t2.Date
+AND t1.row_id = t2.min_row_id;
+
+-- Empty the main table
+TRUNCATE TABLE weight_log_info;
+
+-- Insert deduplicated rows back
+INSERT INTO weight_log_info (Id, Date, WeightKg, WeightPounds, Fat, BMI, IsManualReport, LogId)
+SELECT Id, Date, WeightKg, WeightPounds, Fat, BMI, IsManualReport, LogId
+FROM temp_weight_log;
+
+DROP TEMPORARY TABLE temp_weight_log;
+
+-- View results
+SELECT *
+FROM weight_log_info
+LIMIT 100;
+
+-- Create weight_log_info2 table ---------------------------------------------------------------------------------
+-- Drop table if it exists
+DROP TABLE IF EXISTS weight_log_info2;
+
+-- Create table with row_id for deduplication
+CREATE TABLE weight_log_info2 (
+    row_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    Id BIGINT NOT NULL,
+    Date DATETIME NOT NULL,
+    WeightKg FLOAT,
+    WeightPounds FLOAT,
+    Fat INT NULL,
+    BMI FLOAT,
+    IsManualReport BOOLEAN,
+    LogId BIGINT,
+    UNIQUE KEY unique_id_date (Id, Date)
+);
+
+-- Load data from CSV
+LOAD DATA INFILE 'c:/ProgramData/MySQL/MySQL Server 8.0/Uploads/weightLogInfo_merged2.csv'
+INTO TABLE weight_log_info2
+FIELDS TERMINATED BY ','
+IGNORE 1 ROWS
+(Id, @raw_date, WeightKg, WeightPounds, @raw_Fat, BMI, @raw_manual, LogId)
+SET Date = STR_TO_DATE(TRIM(@raw_date), '%c/%e/%Y %h:%i:%s %p'),
+    Fat = NULLIF(@raw_Fat,''),
+    IsManualReport = CASE 
+                        WHEN UPPER(TRIM(@raw_manual)) = 'TRUE' THEN TRUE
+                        WHEN UPPER(TRIM(@raw_manual)) = 'FALSE' THEN FALSE
+                        ELSE NULL
+                     END;
+
+-- Remove duplicates keeping the first row_id
+CREATE TEMPORARY TABLE temp_weight_log2 AS
+SELECT t1.*
+FROM weight_log_info2 t1
+INNER JOIN (
+    SELECT Id, Date, MIN(row_id) AS min_row_id
+    FROM weight_log_info2
+    GROUP BY Id, Date
+) t2
+ON t1.Id = t2.Id
+AND t1.Date = t2.Date
+AND t1.row_id = t2.min_row_id;
+
+-- Empty the main table
+TRUNCATE TABLE weight_log_info2;
+
+-- Insert deduplicated rows back
+INSERT INTO weight_log_info2 (Id, Date, WeightKg, WeightPounds, Fat, BMI, IsManualReport, LogId)
+SELECT Id, Date, WeightKg, WeightPounds, Fat, BMI, IsManualReport, LogId
+FROM temp_weight_log2;
+
+DROP TEMPORARY TABLE temp_weight_log2;
+
+-- View results
+SELECT *
+FROM weight_log_info2
+LIMIT 100;
+
