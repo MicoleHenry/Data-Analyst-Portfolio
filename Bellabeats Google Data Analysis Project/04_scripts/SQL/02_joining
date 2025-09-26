@@ -1,0 +1,109 @@
+CREATE TABLE joined_daily_data AS
+
+SELECT 
+    a.Id,
+    a.ActivityDate,
+
+    -- Daily Activity 1
+    a.TotalSteps       AS DA_TotalSteps,
+    a.TotalDistance    AS DA_TotalDistance,
+    a.VeryActiveDistance AS DA_VeryActiveDistance,
+    a.ModeratelyActiveDistance AS DA_ModerateActiveDistance,
+    a.LightActiveDistance AS DA_LightActiveDistance,
+    a.SedentaryActiveDistance AS DA_SedentaryDistance,
+    a.VeryActiveMinutes AS DA_VeryActiveMinutes,
+    a.FairlyActiveMinutes AS DA_FairlyActiveMinutes,
+    a.LightlyActiveMinutes AS DA_LightlyActiveMinutes,
+    a.SedentaryMinutes AS DA_SedentaryMinutes,
+    a.Calories         AS DA_Calories,
+
+    -- Daily Activity 2
+    a2.TotalSteps       AS DA2_TotalSteps,
+    a2.TotalDistance    AS DA2_TotalDistance,
+    a2.VeryActiveDistance AS DA2_VeryActiveDistance,
+    a2.ModeratelyActiveDistance AS DA2_ModerateActiveDistance,
+    a2.LightActiveDistance AS DA2_LightActiveDistance,
+    a2.SedentaryActiveDistance AS DA2_SedentaryDistance,
+    a2.VeryActiveMinutes AS DA2_VeryActiveMinutes,
+    a2.FairlyActiveMinutes AS DA2_FairlyActiveMinutes,
+    a2.LightlyActiveMinutes AS DA2_LightlyActiveMinutes,
+    a2.SedentaryMinutes AS DA2_SedentaryMinutes,
+    a2.Calories         AS DA2_Calories,
+
+    -- Daily Calories
+    c.Calories AS CaloriesLogged,
+
+    -- Daily Intensities
+    i.VeryActiveMinutes AS Intensity_VeryActiveMinutes,
+    i.FairlyActiveMinutes AS Intensity_FairlyActiveMinutes,
+    i.LightlyActiveMinutes AS Intensity_LightlyActiveMinutes,
+    i.SedentaryMinutes AS Intensity_SedentaryMinutes,
+
+    -- Daily Steps
+    st.StepTotal AS StepsLogged,
+
+    -- Sleep Day
+    s.TotalSleepRecords,
+    s.TotalMinutesAsleep,
+    s.TotalTimeInBed
+
+FROM daily_activity a
+
+LEFT JOIN daily_activity2 a2
+       ON a.Id = a2.Id AND a.ActivityDate = a2.ActivityDate
+
+LEFT JOIN daily_calories c
+       ON a.Id = c.Id AND a.ActivityDate = c.ActivityDate
+
+LEFT JOIN daily_intensities i
+       ON a.Id = i.Id AND a.ActivityDate = i.ActivityDate
+
+LEFT JOIN daily_steps st
+       ON a.Id = st.Id AND a.ActivityDate = st.ActivityDate
+
+LEFT JOIN sleep_day s
+       ON a.Id = s.Id AND a.ActivityDate = s.ActivityDate;
+       
+       
+## Clean Up Joined Table
+CREATE TABLE clean_daily_activity AS
+SELECT 
+    Id,
+    ActivityDate,
+    DA_TotalSteps AS TotalSteps,
+    DA_TotalDistance AS TotalDistance,
+    DA_VeryActiveDistance AS VeryActiveDistance,
+    DA_ModerateActiveDistance AS ModerateActiveDistance,
+    DA_LightActiveDistance AS LightActiveDistance,
+    DA_SedentaryDistance AS SedentaryDistance,
+    DA_VeryActiveMinutes AS VeryActiveMinutes,
+    DA_FairlyActiveMinutes AS FairlyActiveMinutes,
+    DA_LightlyActiveMinutes AS LightlyActiveMinutes,
+    DA_SedentaryMinutes AS SedentaryMinutes,
+    DA_Calories AS Calories
+FROM joined_daily_data
+WHERE DA_TotalSteps IS NOT NULL
+
+UNION ALL
+
+SELECT 
+    Id,
+    ActivityDate,
+    DA2_TotalSteps AS TotalSteps,
+    DA2_TotalDistance AS TotalDistance,
+    DA2_VeryActiveDistance AS VeryActiveDistance,
+    DA2_ModerateActiveDistance AS ModerateActiveDistance,
+    DA2_LightActiveDistance AS LightActiveDistance,
+    DA2_SedentaryDistance AS SedentaryDistance,
+    DA2_VeryActiveMinutes AS VeryActiveMinutes,
+    DA2_FairlyActiveMinutes AS FairlyActiveMinutes,
+    DA2_LightlyActiveMinutes AS LightlyActiveMinutes,
+    DA2_SedentaryMinutes AS SedentaryMinutes,
+    DA2_Calories AS Calories
+FROM joined_daily_data
+WHERE DA2_TotalSteps IS NOT NULL;
+
+select *
+from clean_daily_activity;
+
+
