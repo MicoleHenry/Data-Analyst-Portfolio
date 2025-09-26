@@ -1,0 +1,48 @@
+# 05_check_missing_and_irrelevant_columns.R
+# Purpose: Check exported CSV files for missing values and identify potentially irrelevant columns
+# Author: M.Henry
+# ===============================================
+
+#------------------------------------------------
+# Set folder path for exported CSV files
+#------------------------------------------------
+folder_path <- "C:/Users/micol/OneDrive/Desktop/Tableau_CSVs"
+
+# -----------------------------------------------
+# List all CSV files in the folder
+# -----------------------------------------------
+files <- list.files(folder_path, pattern = "\\.csv$", full.names = TRUE)
+
+# -----------------------------------------------
+# Verify that CSV files exist
+# -----------------------------------------------
+if(length(files) == 0) {
+  stop("No CSV files found in the folder. Check the folder path.")
+} else {
+  print(paste(length(files), "CSV files found."))
+  print(basename(files))
+}
+
+# -----------------------------------------------
+# Create a summary of missing values for each CSV
+# -----------------------------------------------
+# For each file:
+#   - Read CSV
+#   - Warn if file has no rows
+#   - Create a data frame showing column name and number of missing values
+column_missing_summary <- lapply(files, function(file) {
+  df <- read_csv(file, show_col_types = FALSE)
+  if(nrow(df) == 0) {
+    warning(paste("File has no rows:", basename(file)))
+  }
+  data.frame(
+    File = basename(file),
+    Column = colnames(df),
+    MissingValues = sapply(df, function(x) sum(is.na(x)))
+  )
+}) %>% bind_rows()
+
+# -----------------------------------------------
+# View the missing value summary in R
+# -----------------------------------------------
+View(column_missing_summary)
