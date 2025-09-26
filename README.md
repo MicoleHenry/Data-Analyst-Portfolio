@@ -15,3 +15,9 @@ Here you’ll find projects I’ve worked on in **SQL, Python, Tableau, and Exce
 - 🔍 [Data Exploration R Script](https://github.com/MicoleHenry/Data-Analyst-Portfolio/tree/main/Bellabeats%20Google%20Data%20Analysis%20Project/04_scripts/R) 
 
 <img width="1177" height="855" alt="Bellabeats Dashboard" src="https://github.com/user-attachments/assets/8c0d996f-659a-4f2c-8d59-048a8e8827ca" />
+
+## SQL & Looker Studio
+
+### Teacher Salary Trends & State Education Spending (2009, 2019-2021) 
+- 🗄️ [SQL Script]
+<img width="848" height="636" alt="teacher_salary_dashboard" src="https://github.com/user-attachments/assets/b23475d3-4440-4941-9563-74cfe6020c81" />
