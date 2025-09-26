@@ -1,0 +1,67 @@
+# 03_export_csv_for_tableau.R
+# Purpose: Export selected R data objects as CSV files for Tableau dashboard creation
+# Author: M.Henry
+# Notes: Files will need to be re-saved as .xlsx before uploading into Tableau
+# ===============================================
+
+# -----------------------------------------------
+# Create folder for Tableau CSV exports if it doesn't exist
+# -----------------------------------------------
+folder_path <- "Tableau_CSVs"
+if(!dir.exists(folder_path)) dir.create(folder_path)
+
+# -----------------------------------------------
+# List of R objects to export
+# -----------------------------------------------
+# Includes all relevant summary tables, processed data, and user_data for visualizations
+tables_to_export <- c(
+  "daily_steps", "steps_by_hour_weekday", "steps_by_weekday", "total_steps_user",
+  "hourly_steps", "hourly1", "hourly2", "steps_by_hour",
+  "total_calories_per_user", "avg_daily_calories_per_user", "calories_summary",
+  "avg_calories", "avg_daily_calories_stats", "calories_plot_data", "calories_stats",
+  "total_calories_user", "user_calories",
+  "min_calories", "max_calories",
+  "sleep_summary", "sleep_days_tracking", "sleep_minutes_tracking",
+  "sleep_day", "sleep_users", "sleep_users_df",
+  "weight_summary",
+  "cor_matrix", "cor_melt", "cross_feature", "cross_feature_no_weight", "cross_feature_scaled",
+  "total_users", "total_users_df",
+  "user_data"
+)
+
+# -----------------------------------------------
+# Loop through objects and export each as CSV
+# -----------------------------------------------
+for(tbl in tables_to_export) {
+  if(exists(tbl)) {
+    obj <- get(tbl)
+    
+    # If object is numeric scalar, convert to data frame for export
+    if(is.numeric(obj) && length(obj) == 1) {
+      obj <- data.frame(Value = obj)
+    }
+    
+    # Export object if it is a data frame
+    if(is.data.frame(obj)) {
+      # Special filename for user_data
+      if(tbl == "user_data") {
+        write_csv(obj, file.path(folder_path, "avg_steps_vs_calories.csv"))
+        message("Exported user_data as avg_steps_vs_calories.csv")
+      } else {
+        write_csv(obj, file.path(folder_path, paste0(tbl, ".csv")))
+        message("Exported ", tbl)
+      }
+    } else {
+      message(tbl, " is not a data frame or single numeric value, skipping.")
+    }
+  } else {
+    message(tbl, " does not exist in environment, skipping.")
+  }
+}
+
+# -----------------------------------------------
+# All exportable objects have been processed
+# -----------------------------------------------
+cat("All exportable objects have been processed.\n")
+
+
