@@ -1,0 +1,17 @@
+Var1,Var2,value
+TotalSteps,TotalSteps,1
+TotalCalories,TotalSteps,0.5414847958394304
+TotalSleepMinutes,TotalSteps,0.1694665505804799
+WeightLogs,TotalSteps,NA
+TotalSteps,TotalCalories,0.5414847958394304
+TotalCalories,TotalCalories,1
+TotalSleepMinutes,TotalCalories,0.005207584490886851
+WeightLogs,TotalCalories,NA
+TotalSteps,TotalSleepMinutes,0.1694665505804799
+TotalCalories,TotalSleepMinutes,0.005207584490886851
+TotalSleepMinutes,TotalSleepMinutes,1
+WeightLogs,TotalSleepMinutes,NA
+TotalSteps,WeightLogs,NA
+TotalCalories,WeightLogs,NA
+TotalSleepMinutes,WeightLogs,NA
+WeightLogs,WeightLogs,1
