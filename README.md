@@ -19,5 +19,5 @@ Here you’ll find projects I’ve worked on in **SQL, Python, Tableau, and Exce
 ## SQL & Looker Studio
 
 ### Teacher Salary Trends & State Education Spending (2009, 2019-2021) 
-- 🗄️ [SQL Script]
+- 🗄️ [SQL Script](https://github.com/MicoleHenry/Data-Analyst-Portfolio/tree/main/Teacher%20Salary%20Project/03_SQL_script)
 <img width="848" height="636" alt="teacher_salary_dashboard" src="https://github.com/user-attachments/assets/b23475d3-4440-4941-9563-74cfe6020c81" />
