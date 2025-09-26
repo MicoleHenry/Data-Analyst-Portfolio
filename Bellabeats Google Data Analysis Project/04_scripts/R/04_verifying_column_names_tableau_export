@@ -1,0 +1,46 @@
+# 04_verifying_column_names_tableau_export.R
+# Purpose: Verify and document column names of exported CSV files for Tableau dashboard preparation
+# Author: M.Henry
+# Notes: Prints column names of all CSVs in the designated folder and saves a text file summary
+# ==========================================================================================
+
+# -----------------------------------------------
+# Set folder path for exported CSV files
+# -----------------------------------------------
+folder_path <- "C:/Users/micol/OneDrive/Desktop/Tableau_CSVs"
+
+# Create folder if it doesn't exist
+if(!dir.exists(folder_path)){
+  dir.create(folder_path)
+}
+
+# -----------------------------------------------
+# List all CSV files in the folder
+# -----------------------------------------------
+csv_files <- list.files(folder_path, pattern = "\\.csv$", full.names = TRUE)
+
+# -----------------------------------------------
+# Define output text file for column name summary
+# -----------------------------------------------
+output_file <- file.path(folder_path, "column_names_summary.txt")
+cat("", file = output_file)  # Clear previous content
+
+# -----------------------------------------------
+# Loop through each CSV file, print and save column names
+# -----------------------------------------------
+for(file in csv_files) {
+  df <- read_csv(file, show_col_types = FALSE)
+  
+  # Print file name and columns to console
+  cat("File:", basename(file), "\n")
+  cat("Columns:", paste(colnames(df), collapse = ", "), "\n")
+  cat(strrep("-", 40), "\n")
+  
+  # Append file name and columns to summary text file
+  cat("File:", basename(file), "\n", file = output_file, append = TRUE)
+  cat("Columns:", paste(colnames(df), collapse = ", "), "\n", file = output_file, append = TRUE)
+  cat(strrep("-", 40), "\n", file = output_file, append = TRUE)
+}
+
+# Final message indicating summary file location
+cat("Column name summary saved to", output_file, "\n")
