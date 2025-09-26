@@ -1,0 +1,339 @@
+# 02_create_initial_data_visualizations.R
+# Purpose: Explore trends in data to inform insights for Tableau Dashboard
+# Author: M.Henry
+
+# ===============================================
+# Total steps by user
+# ===============================================
+
+# Pull total steps per user from SQL
+steps_df <- dbGetQuery(con, 
+                       "SELECT Id, TotalSteps FROM total_steps_per_user;")
+
+# Preview the data
+head(steps_df)
+
+# Plot total steps per user as a bar chart
+library(ggplot2)
+
+ggplot(steps_df, aes(x = as.factor(Id), y = TotalSteps, fill = as.factor(Id))) +
+  geom_bar(stat = "identity") +
+  labs(title = "Total Steps by User",
+       x = "User ID",
+       y = "Total Steps") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # tilt labels for readability
+
+# ===============================================
+# Average Steps by Hour of the Day
+# ===============================================
+
+# Pull hourly steps data from SQL
+hourly1 <- dbGetQuery(con, "SELECT Id, ActivityHour, StepTotal FROM hourly_steps")
+hourly2 <- dbGetQuery(con, "SELECT Id, ActivityHour, StepTotal FROM hourly_steps2")
+
+# Combine the hourly tables
+hourly_steps <- bind_rows(hourly1, hourly2)
+
+# Convert ActivityHour to datetime and extract Weekday and Hour
+hourly_steps <- hourly_steps %>%
+  mutate(
+    ActivityHour = as.POSIXct(ActivityHour, format = "%Y-%m-%d %H:%M:%S"),
+    Weekday = wday(ActivityHour, label = TRUE, abbr = TRUE),  # Mon, Tue, etc.
+    Hour = hour(ActivityHour)
+  )
+
+# Calculate average steps per hour per weekday
+steps_by_hour_weekday <- hourly_steps %>%
+  group_by(Weekday, Hour) %>%
+  summarise(
+    AvgSteps = round(mean(StepTotal, na.rm = TRUE), 0),
+    .groups = 'drop'
+  )
+
+# Define a plotting function for hourly steps per weekday
+plot_weekday_hour_repel <- function(day_label, data) {
+  df <- data %>% filter(Weekday == day_label)
+  
+  ggplot(df, aes(x = Hour, y = AvgSteps)) +
+    geom_line(color = "darkgreen", size = 1) +
+    geom_point(color = "darkgreen") +
+    geom_text_repel(aes(label = AvgSteps),
+                    nudge_y = -500,
+                    size = 3,
+                    segment.color = "grey50",
+                    min.segment.length = 0) +
+    scale_x_continuous(breaks = 0:23) +
+    labs(title = paste("Average Steps per Hour -", day_label),
+         x = "Hour of Day",
+         y = "Average Steps") +
+    theme_minimal()
+}
+
+# Generate plots for each day of the week
+p <- plot_weekday_hour_repel("Sun", steps_by_hour_weekday)
+print(p)
+
+p <- plot_weekday_hour_repel("Mon", steps_by_hour_weekday)
+print(p)
+
+p <- plot_weekday_hour_repel("Tue", steps_by_hour_weekday)
+print(p)
+
+p <- plot_weekday_hour_repel("Wed", steps_by_hour_weekday)
+print(p)
+
+p <- plot_weekday_hour_repel("Thu", steps_by_hour_weekday)
+print(p)
+
+p <- plot_weekday_hour_repel("Fri", steps_by_hour_weekday)
+print(p)
+
+p <- plot_weekday_hour_repel("Sat", steps_by_hour_weekday)
+print(p)
+
+# ======================================================
+# Average Total Steps vs Average Total Calories by User
+# ======================================================
+
+# Join total steps and average calories tables
+user_data <- total_steps_per_user %>%
+  inner_join(avg_calories, by = "Id") %>%
+  select(
+    UserId = Id,
+    AvgSteps = TotalSteps,   # Total steps per user
+    AvgCalories = AvgCalories  # Average calories per user
+  )
+
+# Export the dataset for Tableau
+folder_path <- "Tableau_CSVs"
+if(!dir.exists(folder_path)) dir.create(folder_path)
+write_csv(user_data, file.path(folder_path, "avg_steps_vs_calories.csv"))
+
+# Scatterplot of average steps vs average calories
+ggplot(user_data, aes(x = AvgSteps, y = AvgCalories)) +
+  geom_point(color = "#2c7fb8", size = 3, alpha = 0.7) +
+  labs(
+    title = "Average Total Steps vs. Average Calories by User",
+    x = "Average Total Steps",
+    y = "Average Calories"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(plot.title = element_text(face = "bold", hjust = 0.5))
+
+# ===============================================
+# Number of days each user tracked sleep
+# ===============================================
+
+# Pull sleep_day table from SQL
+sleep_day <- dbGetQuery(con, "SELECT Id, ActivityDate, TotalSleepRecords, TotalMinutesAsleep, TotalTimeInBed FROM sleep_day;")
+
+# Calculate the number of days each user tracked sleep
+sleep_days_tracking <- sleep_day %>%
+  group_by(Id) %>%
+  summarise(DaysSleepTracked = sum(TotalSleepRecords > 0, na.rm = TRUE))
+
+# Plot days of sleep tracked per user
+ggplot(sleep_days_tracking, aes(x = as.factor(Id), y = DaysSleepTracked)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(title = "Number of Days Sleep Tracked per User",
+       x = "User ID",
+       y = "Days Sleep Logged") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+# ===============================================
+# 3) Total Minutes Asleep Logged per User
+# ===============================================
+
+# Calculate total minutes asleep per user
+sleep_minutes_tracking <- sleep_day %>%
+  group_by(Id) %>%
+  summarise(TotalMinutesAsleepLogged = sum(TotalMinutesAsleep, na.rm = TRUE))
+
+# Plot total minutes asleep per user
+ggplot(sleep_minutes_tracking, aes(x = as.factor(Id), y = TotalMinutesAsleepLogged)) +
+  geom_bar(stat = "identity", fill = "purple") +
+  labs(title = "Total Minutes Asleep Logged per User",
+       x = "User ID",
+       y = "Minutes Asleep Logged") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+# ===============================================
+# Number of Days Calories Tracked by User
+# ===============================================
+
+library(RSQLite)   # Load SQL driver if required
+
+# Pull clean_daily_activity from SQL
+clean_daily_activity <- dbReadTable(con, "clean_daily_activity")
+
+# Calculate days calories were tracked per user
+calories_tracking <- clean_daily_activity %>%
+  group_by(Id) %>%
+  summarise(DaysCaloriesTracked = sum(Calories > 0, na.rm = TRUE))
+
+# Plot days calories tracked per user
+ggplot(calories_tracking, aes(x = as.factor(Id), y = DaysCaloriesTracked)) +
+  geom_bar(stat = "identity", fill = "orange") +
+  labs(title = "Number of Days Calories Tracked by User",
+       x = "User ID",
+       y = "Days Calories Logged") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+
+# ===============================================
+# Total Calories Logged per User
+# ===============================================
+
+# Calculate total calories logged per user
+calories_total <- clean_daily_activity %>%
+  group_by(Id) %>%
+  summarise(TotalCaloriesLogged = sum(Calories, na.rm = TRUE))
+
+# Plot total calories logged per user
+ggplot(calories_total, aes(x = as.factor(Id), y = TotalCaloriesLogged)) +
+  geom_bar(stat = "identity", fill = "red") +
+  labs(title = "Total Calories Logged per User",
+       x = "User ID",
+       y = "Total Calories Logged") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+
+# ===============================================
+# Weight Logging per User
+# ===============================================
+
+# Pull weight log table from SQL
+weight_log <- dbGetQuery(con, "SELECT * FROM weight_log_info;")
+
+# Count number of weight logs per user
+weight_tracking <- weight_log %>%
+  group_by(Id) %>%
+  summarise(DaysWeightLogged = n())
+
+# Plot number of weight logs per user
+ggplot(weight_tracking, aes(x = as.factor(Id), y = DaysWeightLogged)) +
+  geom_bar(stat = "identity", fill = "darkgreen") +
+  labs(title = "Number of Weight Logs per User",
+       x = "User ID",
+       y = "Days Weight Logged") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+# ===============================================
+# Users Who Tracked Weight
+# ===============================================
+
+# Total number of users with daily activity
+total_users_df <- dbGetQuery(con, "SELECT COUNT(DISTINCT Id) AS NumUsers FROM daily_activity_summary;")
+total_users <- total_users_df$NumUsers[1]
+
+# Number of users who logged weight
+weight_users_df <- dbGetQuery(con, "SELECT COUNT(DISTINCT Id) AS NumWeightUsers FROM weight_log_info;")
+weight_users <- weight_users_df$NumWeightUsers[1]
+
+# Prepare summary table for plotting
+weight_summary <- data.frame(
+  Status = c("Tracked Weight", "Did Not Track Weight"),
+  Users = c(weight_users, total_users - weight_users)
+)
+
+# Plot number of users who tracked witght
+ggplot(weight_summary, aes(x = Status, y = Users, fill = Status)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = Users), vjust = -0.5, size = 5) +
+  labs(title = "Numberof Users Who Tracked Weight",
+       x = "",
+       y = "Number of Users") +
+  scale_fill_manual(values = c("Tracked Weight" = "darkgreen", "Did Not Track Weight" = "gray")) +
+  theme_minimal() +
+  theme(legend.position = "none",
+        axis.text.x = element_text(size = 12))
+
+# ===============================================
+# Feature Engagement Correlations
+# ===============================================
+
+# Pull total steps per user and aggregate
+steps_summary <- dbGetQuery(con, "SELECT Id, SUM(TotalSteps) as TotalSteps FROM total_steps_per_user GROUP BY Id")
+
+# Pull total calories per user and aggregate
+calories_summary <- dbGetQuery(con, "SELECT Id, SUM(Calories) as TotalCalories FROM daily_activity_summary GROUP BY Id")
+
+# Pull total minutes asleep per user and aggregate
+sleep_summary <- dbGetQuery(con, "SELECT Id, SUM(TotalMinutesAsleep) as TotalSleepMinutes FROM sleep_day GROUP BY Id")
+
+# Pull number of weight logs per user and aggregate
+weight_summary <- dbGetQuery(con, "SELECT Id, COUNT(*) as WeightLogs FROM weight_log_info GROUP BY Id")
+
+# Combine all feature summaries into one table
+cross_feature <- steps_summary %>%
+  full_join(calories_summary, by = "Id") %>%
+  full_join(sleep_summary, by = "Id") %>%
+  full_join(weight_summary, by = "Id") %>%
+  replace(is.na(.), 0)  # replace missing values with 0
+
+
+# Normalize numeric feature values for correlation analysis
+cross_feature_scaled <- cross_feature %>%
+  select(-Id) %>%
+  scale()
+
+
+# Compute correlation matrix for all features
+cor_matrix <- cor(cross_feature_scaled)
+cor_matrix # Display correlation matrix
+
+#=================================================
+# Plot Heatmap Using ggplot2
+#=================================================
+
+# Melt the correlation matrix into long format for ggplot2
+cor_melt <- melt(cor_matrix)
+
+# Create heatmap with correlation values
+ggplot(cor_melt, aes(Var1, Var2, fill = value)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white",
+                       midpoint = 0, limit = c(-1,1), space = "Lab",
+                       name="Correlation") +
+  geom_text(aes(label = round(value, 2)), color = "black", size = 4) +
+  theme_minimal() +
+  labs(title = "Cross-Feature Engagement Correlation Heatmap",
+       x = "Feature",
+       y = "Feature") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+#=================================================
+# Triangular Heat Map Using corrplot
+#=================================================
+
+# Install corrplot if not already installed
+if (!require(corrplot)) install.packages("corrplot")
+library(corrplot)
+
+# Select only numeric features for correlation
+cross_feature_no_weight <- cross_feature %>%
+  select(TotalSteps, TotalCalories, TotalSleepMinutes)
+
+# Normalize selected features (optional but recommended)
+cross_feature_scaled <- scale(cross_feature_no_weight)
+
+# Compute correlation matrix for selected numeric features
+cor_matrix <- cor(cross_feature_scaled)
+
+# Create triangular heatmap of correlations
+corrplot(cor_matrix, 
+         method = "color",        # Fill tiles with color
+         type = "upper",          # Display upper triangle only
+         addCoef.col = "black",   # Show correlation values in black
+         tl.col = "black",        # Feature label color
+         tl.srt = 45,             # rotate labels 45 degrees
+         col = colorRampPalette(c("blue","white","red"))(200), # color gradient
+         title = "Feature Engagement Correlations",
+         mar=c(0,0,1,0))          # margins for title
+
