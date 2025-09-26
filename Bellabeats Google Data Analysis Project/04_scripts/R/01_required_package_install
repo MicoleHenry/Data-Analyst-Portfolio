@@ -1,0 +1,37 @@
+# 01_required_package_install.R
+# Purpose: Install and load required packages for data visualization and dashboard development
+# Author: M.Henry
+# ===============================================
+# -----------------------------------------------
+# Install Required Packages
+# -----------------------------------------------
+install.packages("DBI")           # Database interface
+install.packages("RMariaDB")      # MariaDB/MySQL driver
+install.packages("dplyr")         # Data manipulation
+install.packages("ggplot2")       # Data visualization
+install.packages("tidyr")         # Data tidying
+install.packages("getPass")       # Secure password input
+install.packages("shiny")         # Interactive web apps
+install.packages("flexdashboard") # Flexible dashboards
+install.packages("gt")            # Table generation
+install.packages("ggrepel")       # Text labels for ggplot2
+install.packages("reshape2")      # Data reshaping
+install.packages("readr")         # CSV reading and writing
+
+# -----------------------------------------------
+# Load Packages into R Session
+# -----------------------------------------------
+library(DBI)           
+library(RMariaDB)      
+library(tidyr)         
+library(dplyr)         
+library(getPass)       
+library(lubridate)     # Date and time manipulation
+library(ggplot2)       
+library(shiny)         
+library(flexdashboard) 
+library(gt)            
+library(ggrepel)       
+library(reshape2)      
+library(readr)         
+
