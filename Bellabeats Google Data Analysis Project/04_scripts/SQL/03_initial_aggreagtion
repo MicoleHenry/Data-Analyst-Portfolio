@@ -1,9 +1,9 @@
-## Total Steps Overall (single value)
+-- Total Steps Overall (single value)
 create table total_steps_overall As
 SELECT SUM(TotalSteps) AS TotalSteps
 FROM clean_daily_activity;
 
-## Total Steps by User Id
+-- Total Steps by User Id
 create table total_steps_per_user as
 SELECT Id, SUM(TotalSteps) AS TotalSteps
 FROM clean_daily_activity
@@ -16,21 +16,21 @@ GROUP BY Id
 HAVING COUNT(*) > 1;
 
 
-## Total steps by date (all users combined)
+-- Total steps by date (all users combined)
 create table total_steps_per_date As
 SELECT ActivityDate, SUM(TotalSteps) AS TotalSteps
 FROM clean_daily_activity
 GROUP BY ActivityDate
 ORDER BY ActivityDate;
 
-## Total steps per user per day
+-- Total steps per user per day
 create table total_steps_per_user_date as
 SELECT Id, ActivityDate, SUM(TotalSteps) AS TotalSteps
 FROM clean_daily_activity
 GROUP BY Id, ActivityDate
 ORDER BY Id, ActivityDate;
 
-## Average Very/Fairly/Lightly Active Minutes
+-- Average Very/Fairly/Lightly Active Minutes
 CREATE TABLE avg_activity_type AS
 SELECT 
     CAST(AVG(VeryActiveMinutes) AS DECIMAL(10,2)) AS AvgVeryActive,
@@ -38,20 +38,20 @@ SELECT
     CAST(AVG(LightlyActiveMinutes) AS DECIMAL(10,2)) AS AvgLightlyActive
 FROM clean_daily_activity;
 
-## Average Total Active Minutes (all users/dates)
+-- Average Total Active Minutes (all users/dates)
 CREATE TABLE avg_total_active_overall AS
 SELECT 
     CAST(AVG(VeryActiveMinutes + FairlyActiveMinutes + LightlyActiveMinutes) AS FLOAT) AS AvgActiveMinutes
 FROM clean_daily_activity;
 
-## Average Active Minutes by User
+-- Average Active Minutes by User
 create table avg_active_per_user as
 select Id, cast(avg(VeryActiveMinutes + FairlyActiveMinutes + LightlyActiveMinutes)as float) as AvgActiveMinutes 
 from clean_daily_activity
 group by Id
 order by AvgActiveMinutes desc;
 
-## Average Active Minutes by Date (all users)
+-- Average Active Minutes by Date (all users)
 create table avg_active_per_date as
 select ActivityDate,
 cast(avg(VeryActiveMinutes + FairlyActiveMinutes + LightlyActiveMinutes) as float) as AvgActiveMinutes
@@ -59,7 +59,7 @@ from clean_daily_activity
 group by ActivityDate
 order by ActivityDate;
 
-## Average Active Minutes per User by Date
+-- Average Active Minutes per User by Date
 create table avg_active_per_user_date as
 select Id, ActivityDate,
 cast(avg(VeryActiveMinutes + FairlyActiveMinutes + LightlyActiveMinutes) as float) as AvgActiveMinutes
@@ -67,66 +67,66 @@ from clean_daily_activity
 group by Id, ActivityDate
 order by Id, ActivityDate;
 
-## Overall Average Sedentary Minutes
+-- Overall Average Sedentary Minutes
 create table avg_sedentary_overall as
 select cast(avg(SedentaryMinutes) as float) as AvgSedentaryMinutes
 from clean_daily_activity;
 
-## Average Sedentary per User
+-- Average Sedentary per User
 create table avg_sedentary_per_user as
 select Id, cast(avg(SedentaryMinutes)as float) as AvgSedentaryMinutes
 from clean_daily_activity
 group by Id
 order by AvgSedentaryMinutes desc;
 
-## Average Sedentary Activity by Date
+-- Average Sedentary Activity by Date
 create table avg_sedentary_per_date as
 select ActivityDate, cast(avg(SedentaryMinutes) as float) as AvgSedentaryMinutes
 from clean_daily_activity
 group by ActivityDate
 order by ActivityDate;
 
-## Average Sedentary Activity by User by Date
+-- Average Sedentary Activity by User by Date
 create table avg_sedentary_per_user_date as
 select Id, ActivityDate, cast(avg(SedentaryMinutes) as float) as AvgSedentaryMinutes
 from clean_daily_activity
 group by Id, ActivityDate
 order by Id, ActivityDate;
 
-## Overall Average Calories Logged
+-- Overall Average Calories Logged
 create table avg_calories_overall as
 select cast(avg(Calories) as float) as AvgCalories
 from clean_daily_activity;
 
-## Average Calories by User
+-- Average Calories by User
 create table avg_calories_per_user as
 select Id, cast(avg(Calories) as float) as AvgCalories
 from clean_daily_activity
 group by Id
 Order by AvgCalories desc;
 
-## Average Calories by Date (All Users)
+-- Average Calories by Date (All Users)
 create table avg_calories_per_date as
 select ActivityDate, cast(avg(Calories) as float) as AvgCalories
 from clean_daily_activity
 group by ActivityDate
 Order by ActivityDate;
 
-## Average Calories by User by Date
+-- Average Calories by User by Date
 create table avg_calories_per_user_date as
 select Id, ActivityDate, cast(avg(Calories)as float) as AvgCalories
 from clean_daily_activity
 group by Id, ActivityDate
 order by Id, ActivityDate;
 
-## Overall Sleep Metrics
+-- Overall Sleep Metrics
 create table avg_sleep_overall as
 select cast(avg(TotalMinutesAsleep) as float) as AvgMinutesSleep,
 cast(avg(TotalTimeInBed) as float) as AvgTimeInBed,
 cast(avg(TotalMinutesAsleep / Nullif(TotalTimeInBed,0)*100) as float) as AvgSleepEfficiency
 from sleep_day;
 
-## Sleep by User
+-- Sleep by User
 create table avg_sleep_per_user as
 select Id, cast(avg(TotalMinutesAsleep) as float) as AvgMinutesAsleep,
 cast(avg(TotalTimeInBed) as float) as AvgTimeInBed,
@@ -135,7 +135,7 @@ from sleep_day
 group by Id
 order by AvgSleepEfficiency;
 
-## Sleep by Date
+-- Sleep by Date
 create table avg_sleep_per_date as
 select ActivityDate, cast(avg(TotalMinutesAsleep) as float) as AvgMinutesAsleep,
 cast(avg(TotalTimeInBed) as float) as AvgTimeInBed,
@@ -144,7 +144,7 @@ from sleep_day
 group by Id, ActivityDate
 Order by AvgSleepEfficiency;
 
-## Sleep by User by Date
+-- Sleep by User by Date
 create table avg_sleep_per_user_date as
 select Id, ActivityDate, cast(avg(TotalMinutesAsleep) as float) as AvgMinutesAsleep,
 cast(avg(TotalTimeInBed) as float) as AvgTimeInBed,
@@ -153,7 +153,7 @@ from sleep_day
 group by Id, ActivityDate
 order by Id, ActivityDate;
 
-## Daily Activity Summary (Active vs Sedentary)
+-- Daily Activity Summary (Active vs Sedentary)
 CREATE TABLE daily_activity_summary AS
 SELECT 
     a.Id, 
